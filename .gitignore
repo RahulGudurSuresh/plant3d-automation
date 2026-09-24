@@ -1,0 +1,34 @@
+# This repository tracks exactly three projects. Everything else in the
+# working folder stays local (scratch, client drawings, prototypes, notes).
+/*
+!/.gitignore
+!/isotidy-plugin/
+!/isotidypy-plugin/
+!/callout_annotations/
+
+# ---- inside the three projects ----
+# client project data: never commit
+callout_annotations/inputs/
+# generated output and caches
+callout_annotations/out/
+callout_annotations/tests/_cache/
+*.log
+*.bak
+# offline install wheels (73 MB): shipped in the handoff zip, not in git
+isotidypy-plugin/wheels/
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+# .NET / C#
+bin/
+obj/
+.vs/
+*.user
+*.suo
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store

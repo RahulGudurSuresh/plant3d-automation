@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Autodesk autoloader package.  Copy the whole IsoTidy.bundle folder into
+    %APPDATA%\Autodesk\ApplicationPlugins\
+  and AutoCAD / Plant 3D loads IsoTidy.dll automatically at startup.
+  (Put the built IsoTidy.dll into the Contents\ subfolder first.)
+-->
+<ApplicationPackage
+    SchemaVersion="1.0"
+    AutodeskProduct="AutoCAD"
+    ProductType="Application"
+    Name="IsoTidy"
+    AppVersion="0.1.0"
+    Description="De-conflicts overlapping annotations on ISOGEN isometrics"
+    Author="JP1071 automation">
+  <CompanyDetails Name="JP1071 automation" />
+  <Components>
+    <!-- R25.1 = AutoCAD 2026, the first .NET 10 release.  The shipped DLL is a
+         .NET 10 build and will not load in 2025 (R25.0); if you rebuild with
+         net8.0-windows for a 2025 machine, set SeriesMin="R25.0" here. -->
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R25.1" SeriesMax="R25.1" />
+    <!-- SeriesMax pins the autoloader to AutoCAD 2026 for now.  2027 (R26.0) also
+         runs .NET 10, and this 25.1 build loaded and tidied a sheet in the 2027
+         core console (2026-09-24) - but it has not been tried in the 2027 window:
+         raise SeriesMax to "R26.0" when you want it there. -->
+    <ComponentEntry
+        AppName="IsoTidy"
+        ModuleName="./Contents/IsoTidy.dll"
+        AppDescription="ISOTIDY / ISOTIDYSCORE / ISOTIDYALL commands"
+        LoadOnAutoCADStartup="True" />
+  </Components>
+</ApplicationPackage>

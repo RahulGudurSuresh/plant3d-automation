@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "dwgPath",
+      "type": "promptString",
+      "description": "Path to a .dwg file or a folder of DWGs"
+    },
+    {
+      "id": "folderPath",
+      "type": "promptString",
+      "description": "Folder to watch (e.g. the project's ProdIsos folder)"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "IsoTidyPy: 1. Setup (one time)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File \"${workspaceFolder}\\setup.ps1\"",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "IsoTidyPy: 2. Self-test",
+      "type": "shell",
+      "command": "\"${workspaceFolder}\\.venv\\Scripts\\isotidypy.exe\" --selftest",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "IsoTidyPy: Score (measure only, writes nothing)",
+      "type": "shell",
+      "command": "\"${workspaceFolder}\\.venv\\Scripts\\isotidypy.exe\" \"${input:dwgPath}\" --score",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "IsoTidyPy: Tidy a file or folder  ->  tidied\\",
+      "type": "shell",
+      "command": "\"${workspaceFolder}\\.venv\\Scripts\\isotidypy.exe\" \"${input:dwgPath}\"",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "IsoTidyPy: Watch a folder (auto-tidy every new iso)",
+      "type": "shell",
+      "command": "\"${workspaceFolder}\\.venv\\Scripts\\isotidypy.exe\" \"${input:folderPath}\" --watch",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+;;; OPTIONAL AutoCAD bridge -- gives Plant 3D an ISOTIDYPY command that
+;;; hands the OPEN drawing to the Python tool.  setup.ps1 fills in the
+;;; path below and writes isotidypy.lsp next to this file.
+;;;
+;;; Load once per session:  APPLOAD -> isotidypy.lsp
+;;; (or add it to APPLOAD's "Startup Suite" to have it every session).
+;;;
+;;; What it does: saves the drawing, launches isotidypy on it in a console
+;;; window, and the corrected copy appears in  tidied\  next to the file.
+;;; The open drawing is never written to (AutoCAD holds it locked); open
+;;; the tidied copy, or close and reopen after using --inplace by hand.
+;;;
+;;; This 6-line bridge has NOT been exercised on a live AutoCAD by its
+;;; author (no AutoCAD on the build machine).  If it misbehaves, the
+;;; command-line tool is the same thing without the bridge.
+
+(defun c:ISOTIDYPY ( / dwg)
+  (setq dwg (strcat (getvar "DWGPREFIX") (getvar "DWGNAME")))
+  (if (/= (getvar "DBMOD") 0) (command "_.QSAVE"))
+  (startapp "cmd.exe" (strcat "/k \"\"__ISOTIDYPY_EXE__\" \"" dwg "\"\""))
+  (princ (strcat "\nIsoTidyPy started on " dwg
+                 "\nWatch the console window; the result lands in tidied\\ next to the file."))
+  (princ)
+)
+(princ "\nIsoTidyPy bridge loaded: type ISOTIDYPY.")
+(princ)

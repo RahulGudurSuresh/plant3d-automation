@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    isotidy as an in-process AutoCAD Plant 3D plugin.
+    .NET 10 for AutoCAD Plant 3D 2026 / 2027 (the default); .NET 8 only for 2025.
+
+    NO NUGET PACKAGES on purpose: the target machine is air-gapped, so this
+    project depends only on the BCL and the three AutoCAD managed DLLs, which
+    are referenced from the AutoCAD install (or from a local .\acad-ref\
+    folder when building on a machine without AutoCAD - see README step 2).
+
+    Build:  dotnet build -c Release
+    Output: bin\Release\IsoTidy.dll   (NETLOAD this, or use the bundle)
+  -->
+
+  <PropertyGroup>
+    <!-- Point this at the AutoCAD install directory; override on the command
+         line if yours differs:  dotnet build "-p:AcadDir=C:\...\AutoCAD 2026"
+         Auto-detect order: 2026 (the ship target) -> 2027 -> 2025 -> .\acad-ref\ -->
+    <AcadDir Condition="'$(AcadDir)'=='' and Exists('C:\Program Files\Autodesk\AutoCAD 2026')">C:\Program Files\Autodesk\AutoCAD 2026</AcadDir>
+    <AcadDir Condition="'$(AcadDir)'=='' and Exists('C:\Program Files\Autodesk\AutoCAD 2027')">C:\Program Files\Autodesk\AutoCAD 2027</AcadDir>
+    <AcadDir Condition="'$(AcadDir)'=='' and Exists('C:\Program Files\Autodesk\AutoCAD 2025')">C:\Program Files\Autodesk\AutoCAD 2025</AcadDir>
+    <AcadDir Condition="'$(AcadDir)'==''">$(MSBuildProjectDirectory)\acad-ref</AcadDir>
+
+    <!-- AutoCAD 2026 (R25.1) and 2027 (R26.0) host plugins on .NET 10: their
+         acdbmgd.dll is stamped .NETCoreApp,Version=v10.0 (verified on both
+         installs 2026-09-24).  A net8.0 project cannot even reference those
+         DLLs, so building for 2026/2027 needs the .NET 10 SDK (SETUP.md Step 1).
+         AutoCAD 2025 is still .NET 8; the csproj drops to net8.0-windows by
+         itself when AcadDir is a 2025 install.  Building from acad-ref\ with
+         2025 DLLs?  Add  -p:TargetFramework=net8.0-windows  on the command line. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework Condition="$(AcadDir.EndsWith('2025'))">net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>IsoTidy</AssemblyName>
+    <RootNamespace>IsoTidy</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- MSB3277 is pure noise here: AutoCAD's own managed DLLs (acmgd, AcWindows,
+         AdWindows, ...) reference WPF / System.Drawing / VisualBasic at versions
+         that differ from the .NET 10 reference pack.  This plugin uses none of
+         them, and inside AutoCAD the host has already loaded the real ones, so
+         the conflict can never bite.  Demoted to a message so a clean build
+         really shows 0 Warning(s). -->
+    <MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3277</MSBuildWarningsAsMessages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- compile-check\ is a separate stub project (see README "Compile check
+         without AutoCAD"); its files must never enter the real build. -->
+    <Compile Remove="compile-check\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Private=false: these ship with AutoCAD; never copy them next to our DLL. -->
+    <Reference Include="acdbmgd">
+      <HintPath>$(AcadDir)\acdbmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="acmgd">
+      <HintPath>$(AcadDir)\acmgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="accoremgd">
+      <HintPath>$(AcadDir)\accoremgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
