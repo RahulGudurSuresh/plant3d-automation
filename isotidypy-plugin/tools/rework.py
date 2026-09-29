@@ -791,6 +791,18 @@ def table_rect(doc):
     return (min(xs), min(ys), max(xs), max(ys))
 
 
+def reserve_table(scene, rect) -> None:
+    """Make the DESIGN DATA table an obstacle the solver prices and a region
+    the free-space grid will not offer."""
+    poly = sbox(*rect)
+    scene.obstacles.append(poly)
+    scene.owners.append(None)
+    scene._tree = STRtree(scene.obstacles)
+    if scene.free is not None:
+        scene.free.add_rect(*rect)
+        scene.free.finish()
+
+
 def stage_table(ctx, path, roles, cfg) -> int:
     rect = table_rect(ctx.doc)
     if rect is None:
@@ -804,11 +816,7 @@ def stage_table(ctx, path, roles, cfg) -> int:
           f"{[l.text.strip()[:10] for l in on[:6]]}")
 
     def inject(scene):
-        scene.obstacles.append(poly)
-        scene.owners.append(None)
-        scene._tree = STRtree(scene.obstacles)
-        scene.free.add_rect(*rect)
-        scene.free.finish()
+        reserve_table(scene, rect)
 
     def score(p):
         _d, s = extract(p, roles, cfg)

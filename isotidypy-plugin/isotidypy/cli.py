@@ -61,16 +61,38 @@ def _table_rect(dxf: Path):
 
 
 def _health(dxf: Path) -> tuple[int, list[str]]:
-    """Run sheet_health on `dxf`; (issue count, lines)."""
+    """Run sheet_health on `dxf`; (issue count, lines).
+
+    Issue count -1 = the checker itself failed.  A crashed checker prints
+    nothing, and nothing used to be counted as "0 findings" -- a clean bill
+    of health for a sheet nobody had looked at."""
     args = [sys.executable, str(ROOT / "tools" / "sheet_health.py"), str(dxf)]
     rect = _table_rect(dxf)
     if rect:
         args += [f"{v:.1f}" for v in rect]
-    out = subprocess.run(args, capture_output=True, text=True,
-                         encoding="utf-8", errors="replace").stdout
+    proc = subprocess.run(args, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
+    out = proc.stdout
+    if proc.returncode != 0 or "=== " not in out:
+        err = (proc.stderr.strip().splitlines() or ["no output"])[-1]
+        return -1, [f"HEALTH CHECK FAILED: {err}"]
     lines = [l.strip() for l in out.splitlines()
              if l.startswith("  ") and not l.strip().startswith("clean")]
     return len(lines), lines
+
+
+def _on_table(dxf: Path, rect, site: str) -> list[str]:
+    """Texts of the labels whose box touches the DESIGN DATA table."""
+    from shapely.geometry import box as sbox
+    from isotidy import JP1071_ROLES, DEFAULT_ROLES, Tuning
+    from isotidy.extract import extract
+    if rect is None:
+        return []
+    roles = {"jp1071": JP1071_ROLES, "default": DEFAULT_ROLES}[site]
+    _d, sc = extract(dxf, roles, Tuning())
+    poly = sbox(*rect)
+    return [l.text.strip() for l in sc.labels
+            if poly.intersects(sbox(*l.box().bounds))]
 
 
 def _tips_unmoved(orig_dxf: Path, new_dxf: Path) -> tuple[int, int]:
@@ -161,6 +183,23 @@ def tidy_one(src: Path, evidence: Path, site: str, dest: Path | None,
     n_issues, lines = _health(tidied_dxf)
     same, total = _tips_unmoved(orig_dxf, tidied_dxf)
     b = res["before"]
+
+    # 4b. refuse to ship what could not be measured, or what put more labels
+    #     on the DESIGN DATA table than ISOGEN did.  Overlap area does not see
+    #     the table (it is title-block linework), so a sheet could reach
+    #     0.00 mm2 by printing over it and still be reported clean.
+    rect = _table_rect(orig_dxf)
+    t0_on, t1_on = _on_table(orig_dxf, rect, site), _on_table(tidied_dxf, rect, site)
+    why = None
+    if n_issues < 0:
+        why = lines[0]
+    elif len(t1_on) > len(t0_on):
+        why = (f"labels on the DESIGN DATA table {len(t0_on)} -> {len(t1_on)} "
+               f"{[t[:12] for t in t1_on]}")
+    if why:
+        print(f"\n[{tag}] !! NOT DELIVERED: {why}")
+        print(f"  the attempt is kept for inspection in {out}")
+        return {"file": src.name, "ok": False, "why": why}
 
     # 5. deliver the DWG
     if inplace:
@@ -269,9 +308,11 @@ def main(argv=None) -> int:
         for f in files:
             s = score_one(f, a.site)
             c = s["counts"]
+            health = ("HEALTH CHECK FAILED" if s["health"] < 0
+                      else f"{s['health']} findings by every rule")
             print(f"{f.name}: overlap {s['overlap']:.2f} mm2   "
                   f"A={c['A']} B={c['B']} C={c['C']} D={c['D']} E={c['E']}   "
-                  f"{s['labels']} labels   {s['health']} findings by every rule")
+                  f"{s['labels']} labels   {health}")
         return 0
 
     folder = src if src.is_dir() else src.parent
