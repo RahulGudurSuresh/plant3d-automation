@@ -13,8 +13,12 @@ try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except Exception:
     pass
-sys.path.insert(0, r"d:\AI_Rahul\Automation\Plant3D")
 from pathlib import Path
+
+# The package root (isotidy/, tools/), wherever this checkout lives.  A
+# hardcoded developer path here made the script die on import on every other
+# machine -- and the CLI read the empty output as "0 findings".
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import ezdxf
 from ezdxf import bbox as ezb

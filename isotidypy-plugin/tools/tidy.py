@@ -106,8 +106,18 @@ def tidy(src: Path, dst: Path, site: str = "jp1071", rounds: int = 6,
     best = (a0, x0, n0)
     shutil.copy(src, dst)
 
+    # The DESIGN DATA table is off limits from the first round.  Reserving it
+    # only in the late rework stage let the solver park labels on it
+    # (202M01_r0-1: 1 -> 5), and clearing them that late cost leader defects,
+    # so the table stage was rolled back and the labels shipped on the table.
+    import ezdxf
+    from tools.rework import reserve_table, table_rect
+    trect = table_rect(ezdxf.readfile(src))
+
     for r in range(1, rounds + 1):
         doc, scene = extract(work, roles, solve_cfg)
+        if trect is not None:
+            reserve_table(scene, trect)
         stats = solve(scene, solve_cfg)
         if stats.moved == 0:
             print(f"  round {r}: nothing left to move - converged")
